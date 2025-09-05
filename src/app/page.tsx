@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import FormulaDisplay from '@/components/formula-display';
 import IdentityHighlight from '@/components/identity-highlight';
 import { Label } from '@/components/ui/label';
+import type { EulerVisualizationHandle } from '@/components/euler-visualization';
 
 const EulerVisualization = dynamic(() => import('@/components/euler-visualization'), {
   ssr: false,
@@ -19,8 +20,8 @@ export default function Home() {
   const [theta, setTheta] = useState(0);
   const [speed, setSpeed] = useState(0.5);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [zoom, setZoom] = useState(5);
-  const [rotation, setRotation] = useState({ x: Math.PI / 6, y: Math.PI / 4 });
+  
+  const visualizationRef = useRef<EulerVisualizationHandle>(null);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -35,20 +36,19 @@ export default function Home() {
   }, [isPlaying, speed]);
 
   const handleZoom = (direction: 'in' | 'out') => {
-    setZoom(prevZoom => direction === 'in' ? Math.max(2, prevZoom - 1) : Math.min(10, prevZoom + 1));
+    visualizationRef.current?.zoom(direction);
   };
 
   const handleReset = () => {
     setTheta(0);
-    setZoom(5);
-    setRotation({ x: Math.PI / 6, y: Math.PI / 4 });
     setIsPlaying(true);
+    visualizationRef.current?.resetControls();
   };
 
   return (
     <main className="flex min-h-screen w-full flex-col lg:flex-row items-center justify-center bg-background p-4 lg:p-8 gap-8 overflow-hidden">
       <div className="relative w-full lg:w-3/4 h-[60vh] lg:h-[80vh] max-w-4xl max-h-[80vh] aspect-square">
-        <EulerVisualization theta={theta} zoom={zoom} rotation={rotation} setRotation={setRotation} />
+        <EulerVisualization ref={visualizationRef} theta={theta} />
         <IdentityHighlight theta={theta} />
       </div>
 

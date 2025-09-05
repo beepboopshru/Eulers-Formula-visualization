@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, memo } from 'react';
+import React, { useRef, useEffect, memo, forwardRef, useImperativeHandle } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
@@ -10,12 +10,14 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 
 interface EulerVisualizationProps {
   theta: number;
-  zoom: number;
-  rotation: { x: number; y: number };
-  setRotation: (rotation: { x: number; y: number }) => void;
 }
 
-const EulerVisualization: React.FC<EulerVisualizationProps> = ({ theta, zoom, rotation }) => {
+export interface EulerVisualizationHandle {
+  zoom: (direction: 'in' | 'out') => void;
+  resetControls: () => void;
+}
+
+const EulerVisualization = forwardRef<EulerVisualizationHandle, EulerVisualizationProps>(({ theta }, ref) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
@@ -23,11 +25,33 @@ const EulerVisualization: React.FC<EulerVisualizationProps> = ({ theta, zoom, ro
   const labelRendererRef = useRef<CSS2DRenderer>();
   const composerRef = useRef<EffectComposer>();
   const controlsRef = useRef<OrbitControls>();
+  const initialCameraPosition = useRef(new THREE.Vector3(1.5, 1.5, 3));
 
   const vectorRef = useRef<THREE.Line>();
   const pointRef = useRef<THREE.Mesh>();
   const cosLineRef = useRef<THREE.Line>();
   const sinLineRef = useRef<THREE.Line>();
+
+  useImperativeHandle(ref, () => ({
+    zoom: (direction: 'in' | 'out') => {
+      if (controlsRef.current) {
+        const scale = 1.2;
+        if (direction === 'in') {
+          controlsRef.current.dollyIn(scale);
+        } else {
+          controlsRef.current.dollyOut(scale);
+        }
+        controlsRef.current.update();
+      }
+    },
+    resetControls: () => {
+      if (controlsRef.current && cameraRef.current) {
+        controlsRef.current.reset();
+        cameraRef.current.position.copy(initialCameraPosition.current);
+      }
+    }
+  }));
+
 
   useEffect(() => {
     const mountNode = mountRef.current;
@@ -37,7 +61,7 @@ const EulerVisualization: React.FC<EulerVisualizationProps> = ({ theta, zoom, ro
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(75, mountNode.clientWidth / mountNode.clientHeight, 0.1, 1000);
-    camera.position.set(1.5, 1.5, 3);
+    camera.position.copy(initialCameraPosition.current);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -168,14 +192,6 @@ const EulerVisualization: React.FC<EulerVisualizationProps> = ({ theta, zoom, ro
   }, []);
 
   useEffect(() => {
-    if (cameraRef.current && controlsRef.current) {
-      const dir = new THREE.Vector3();
-      cameraRef.current.getWorldDirection(dir);
-      cameraRef.current.position.copy(controlsRef.current.target).addScaledVector(dir, -zoom);
-    }
-  }, [zoom]);
-
-  useEffect(() => {
     const x = Math.cos(theta);
     const y = Math.sin(theta);
     
@@ -208,6 +224,8 @@ const EulerVisualization: React.FC<EulerVisualizationProps> = ({ theta, zoom, ro
   }, [theta]);
   
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden border" />;
-};
+});
+
+EulerVisualization.displayName = 'EulerVisualization';
 
 export default memo(EulerVisualization);
