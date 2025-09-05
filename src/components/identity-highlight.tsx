@@ -1,52 +1,63 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { highlightKeyIdentities, HighlightKeyIdentitiesOutput } from '@/ai/flows/highlight-key-identities';
-import { useDebounce } from '@/hooks/use-debounce';
 import { Card, CardContent } from '@/components/ui/card';
 
+type HighlightResult = {
+  identity: string;
+  shouldHighlight: boolean;
+};
+
 const IdentityHighlight = ({ theta }: { theta: number }) => {
-  const [highlight, setHighlight] = useState<HighlightKeyIdentitiesOutput | null>(null);
+  const [highlight, setHighlight] = useState<HighlightResult | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const debouncedTheta = useDebounce(theta, 200);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    async function getHighlight() {
-      if (debouncedTheta === undefined) return;
-      try {
-        const result = await highlightKeyIdentities({ theta: debouncedTheta });
-        if (result.shouldHighlight) {
-          setHighlight(result);
-          setIsVisible(true);
-        } else {
-          setIsVisible(false);
-          timeoutId = setTimeout(() => setHighlight(null), 300);
-        }
-      } catch (error) {
-        console.error("Error fetching identity highlight:", error);
-        setIsVisible(false);
-        timeoutId = setTimeout(() => setHighlight(null), 300);
-      }
+    const threshold = 0.1; 
+    const currentTheta = theta % (2 * Math.PI);
+
+    let identity = '';
+    let shouldHighlight = false;
+
+    if (Math.abs(currentTheta - 0) < threshold || Math.abs(currentTheta - 2 * Math.PI) < threshold) {
+      identity = 'e^(i*0) = 1';
+      shouldHighlight = true;
+    } else if (Math.abs(currentTheta - Math.PI / 2) < threshold) {
+      identity = 'e^(i*π/2) = i';
+      shouldHighlight = true;
+    } else if (Math.abs(currentTheta - Math.PI) < threshold) {
+      identity = "e^(i*π) = -1"; 
+      shouldHighlight = true;
+    } else if (Math.abs(currentTheta - (3 * Math.PI) / 2) < threshold) {
+      identity = 'e^(i*3π/2) = -i';
+      shouldHighlight = true;
     }
-    getHighlight();
+
+    let timeoutId: NodeJS.Timeout;
+    if (shouldHighlight) {
+      setHighlight({ identity, shouldHighlight });
+      setIsVisible(true);
+    } else {
+      setIsVisible(false);
+      timeoutId = setTimeout(() => setHighlight(null), 300);
+    }
+    
     return () => clearTimeout(timeoutId);
-  }, [debouncedTheta]);
+  }, [theta]);
   
   const position = useMemo(() => {
     if (!highlight || !highlight.shouldHighlight) return { top: '50%', left: '50%' };
     
-    const angle = debouncedTheta;
     const radius = 58; // percentage from center
-    const x = 50 + radius * Math.cos(angle);
-    const y = 50 - radius * Math.sin(angle);
+    const x = 50 + radius * Math.cos(theta);
+    const y = 50 - radius * Math.sin(theta);
 
     return { 
       top: `${y}%`, 
       left: `${x}%`,
       transform: 'translate(-50%, -50%)'
     };
-  }, [highlight, debouncedTheta]);
+  }, [highlight, theta]);
 
   if (!highlight) {
     return null;
