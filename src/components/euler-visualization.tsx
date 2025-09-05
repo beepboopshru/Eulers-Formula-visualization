@@ -25,6 +25,7 @@ const EulerVisualization = forwardRef<EulerVisualizationHandle, EulerVisualizati
   const labelRendererRef = useRef<CSS2DRenderer>();
   const composerRef = useRef<EffectComposer>();
   const controlsRef = useRef<OrbitControls>();
+  const bloomPassRef = useRef<UnrealBloomPass>();
   const initialCameraPosition = useRef(new THREE.Vector3(1.5, 1.5, 3));
 
   const vectorRef = useRef<THREE.Line>();
@@ -89,10 +90,22 @@ const EulerVisualization = forwardRef<EulerVisualizationHandle, EulerVisualizati
 
     const renderScene = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(mountNode.clientWidth, mountNode.clientHeight), 1.0, 0.2, 0.1);
+    bloomPassRef.current = bloomPass;
+    
     const composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
     composerRef.current = composer;
+
+    const handleInteractionStart = () => {
+      if (bloomPassRef.current) bloomPassRef.current.enabled = false;
+    };
+    const handleInteractionEnd = () => {
+      if (bloomPassRef.current) bloomPassRef.current.enabled = true;
+    };
+
+    controls.addEventListener('start', handleInteractionStart);
+    controls.addEventListener('end', handleInteractionEnd);
 
     const primaryColor = new THREE.Color(0x6F00FF);
     const accentColor = new THREE.Color(0x00FFFF);
@@ -184,6 +197,8 @@ const EulerVisualization = forwardRef<EulerVisualizationHandle, EulerVisualizati
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      controls.removeEventListener('start', handleInteractionStart);
+      controls.removeEventListener('end', handleInteractionEnd);
       if (mountNode) {
         mountNode.removeChild(renderer.domElement);
         mountNode.removeChild(labelRenderer.domElement);
