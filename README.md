@@ -2,7 +2,7 @@
 
 This project is an interactive 3D visualization of Euler's formula, one of the most profound and beautiful equations in mathematics. Built with Next.js, React, and Three.js, this application provides an intuitive way to explore the relationship between exponential functions and trigonometry in the complex plane.
 
-![Screenshot of the Euler's Formula Visualization]
+Euler's Formula Visualization
 <img width="1082" height="646" alt="Screenshot 2025-09-05 095853" src="https://github.com/user-attachments/assets/c921fc26-3f4a-4aa2-a65d-9649e67ea082" />
 
 
